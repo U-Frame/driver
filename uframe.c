@@ -13,7 +13,7 @@
 MODULE_LICENSE("GPL");          
 MODULE_AUTHOR("Mahmoud Nagy"); 
 MODULE_DESCRIPTION("A generic kernel driver for UFrame"); 
-MODULE_VERSION("0.1");     
+MODULE_VERSION("0.5");     
 
 #define TYPE_CONTROL 0
 #define TYPE_BULK 1
@@ -117,7 +117,7 @@ static int uframe_probe(struct usb_interface *intf, const struct usb_device_id *
     printk(KERN_INFO "%s: USB CONNECTED\n", DEVICE_NAME);
 
     iface_desc = intf->cur_altsetting;
-    epcnt = iface_desc->desc.bNumEndpoints;
+    epcnt = iface_desc->desc.bNumEndpoints + 1 ; // don't forget there is also the control ep
     uframe_interface = intf;
     uframe_udev = usb_get_dev(interface_to_usbdev(intf));
     uframe_devs = kmalloc(sizeof(struct uframe_dev) * epcnt, GFP_KERNEL);
@@ -129,15 +129,15 @@ static int uframe_probe(struct usb_interface *intf, const struct usb_device_id *
     }
     memset(uframe_devs,0,sizeof(struct uframe_dev) * epcnt);
 
-
-    /*TODO : initialize the control 0 endpoint*/
-    
+    uframe_devs[0].type = TYPE_CONTROL;
+    uframe_devs[0].epno = 0;
+    setup_cdev(&uframe_devs[0].cdev,uframe_minor); // register the control endpoint
     // start from 1 since ep 0 is control
-    for (i = 1; i < iface_desc->desc.bNumEndpoints+1; ++i, d++)
+    for (i = 1; i < iface_desc->desc.bNumEndpoints+1; ++i)
     {
 	endpoint = &iface_desc->endpoint[i-1].desc; // ep starts from 0 
 	kref_init(&uframe_devs[i].kref);
-	uframe_devs[i+1].epno = i+1; // set it for later
+	uframe_devs[i].epno = i; // set it for later
 	if(endpoint->bEndpointAddress & USB_DIR_IN)
 	{
 	    uframe_devs[i].dir = DIR_IN;
@@ -179,14 +179,14 @@ error:
 	    kref_put(&uframe_devs[i].kref, uframe_delete);
     kfree(uframe_devs);
     usb_put_dev(uframe_udev);
-    return retval; // TODO return right error
+    return retval; 
 }
 
 static void uframe_disconnect(struct usb_interface *interface)
 {
     int i;
     
-    printk(KERN_INFO "%s: Pen drive removed\n",DEVICE_NAME);
+    printk(KERN_INFO "%s: USB drive removed\n",DEVICE_NAME);
     
     for(i=0; i < epcnt; i++)
 	cdev_del(&uframe_devs[i].cdev);
@@ -213,13 +213,13 @@ static void setup_cdev(struct cdev *dev ,int minor)
 }
 
 
-/*TODO: configure the read and write system*/
 
 int uframe_open(struct inode *inode, struct file *filp)
 {
     struct uframe_dev *dev;
     dev = container_of(inode->i_cdev, struct uframe_dev, cdev);
     filp->private_data = dev; // for other methods
+    kref_get(&dev->kref);
     return 0;
 }
 
@@ -228,17 +228,27 @@ int uframe_release(struct inode *inode, struct file *filp)
 {
     struct uframe_dev *dev;
     dev = container_of(inode->i_cdev, struct uframe_dev, cdev);
+    kref_put(&dev->kref,uframe_delete);
     return 0;
 }
 
 ssize_t uframe_read(struct file *filp, char __user *buff, size_t count, loff_t *offp)
 {
+    struct uframe_dev *dev;
+
+    dev = filp->private_data;
+    printk(KERN_INFO"%s: READ From endpoint %d, type %d, dir %d\n",DEVICE_NAME, dev->epno, dev->type, dev->dir);
     return 0;
 }
 ssize_t uframe_write(struct file *filp, const char __user *buff, size_t count, loff_t *offp)
 {
+    struct uframe_dev *dev;
+    
+    dev = filp->private_data;
+    printk(KERN_INFO"%s: WRITE From endpoint %d, type %d, dir %d\n",DEVICE_NAME, dev->epno, dev->type, dev->dir);
+    
     return count;
-    }
+}
 
 
 /*int uframe_ioctl (struct inode *node, struct file *filp, unsigned int, unsigned long )
