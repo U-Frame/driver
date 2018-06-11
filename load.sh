@@ -3,8 +3,8 @@ module="uframe"
 mode="664"
 dir="/dev/uframe"
 # invoke insmod with all arguments we got
-# and use a pathname, as newer modutils don't look in . by default
-/sbin/insmod ./$module.ko $* || exit 1
+# and use a pathname, as newer modutils don't look in . by
+/sbin/insmod ./udriver.ko $* || exit 1
 mkdir -p $dir
 # remove stale nodes
 rm -f $dir/command
