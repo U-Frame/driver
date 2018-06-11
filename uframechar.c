@@ -119,3 +119,29 @@ ssize_t uframe_write(struct file *filp, const char __user *buff, size_t count, l
     }
     return retval;
 }
+
+long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    struct uframe_endpoint *ep;
+    int retval;
+    retval = 0;
+    ep = filp->private_data;    
+    printk(KERN_INFO"%s: IOCTL From endpoint %d, type %d, dir %d\n",DEVICE_NAME,ep->epaddr, ep->type, ep->dir);
+
+    switch(cmd)
+    {
+    case IOCTL_INTERRUPT_INTERVAL:
+	if(ep->type == TYPE_INTERRUPT)
+	{
+	    if(copy_to_user((int __user *) arg, &ep->interval, sizeof(int)))
+	       return -EFAULT;
+
+	 }else
+	      return -EFAULT;
+	    break;
+	    
+    default: // not defined
+	return -ENOTTY;
+    }
+	return 0;
+}

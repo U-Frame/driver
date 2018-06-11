@@ -14,7 +14,7 @@ struct uframe_endpoint {
     int type;
     int dir;
     int epaddr;
-    int timeout;
+    int interval;
     int buffer_size; // if input determine the size
     char * data;
     struct kref kref; 

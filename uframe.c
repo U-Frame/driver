@@ -43,6 +43,7 @@ struct file_operations uframe_fops =
     .write = uframe_write,
     .open = uframe_open,
     .release = uframe_release,
+    .unlocked_ioctl = uframe_ioctl,
 };
 
 static struct usb_driver uframe_driver =
@@ -123,6 +124,7 @@ static int uframe_probe(struct usb_interface *intf, const struct usb_device_id *
 	{
 	    uframe_dev.eps[i].dir = DIR_IN;
 	    uframe_dev.eps[i].buffer_size = endpoint->wMaxPacketSize;
+	    uframe_dev.eps[i].interval = endpoint->bInterval;
 	    uframe_dev.eps[i].data = kmalloc(uframe_dev.eps[i].buffer_size,GFP_KERNEL);
 	    if (!uframe_dev.eps[i].data)
 	    {
