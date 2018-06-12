@@ -85,6 +85,7 @@ ssize_t uframe_write(struct file *filp, const char __user *buff, size_t count, l
     struct uframe_endpoint *ep;
     int retval;
     char *buf = NULL;
+    struct control_params *cparams;
     retval = 0;
     ep = filp->private_data;    
     printk(KERN_INFO"%s: WRITE From endpoint %d, type %d, dir %d\n",DEVICE_NAME,ep->epaddr, ep->type, ep->dir);
@@ -101,6 +102,12 @@ ssize_t uframe_write(struct file *filp, const char __user *buff, size_t count, l
     switch(ep->type)
     {
     case TYPE_CONTROL:
+	cparams = (struct control_params *) buf;
+	buf = buf + sizeof(struct control_params);
+	retval = usb_control_msg(uframe_dev.udev, usb_sndctrlpipe(uframe_dev.udev,ep->epaddr),
+				 cparams->request, cparams->request_type, cparams->value, cparams->index,
+				 buf,cparams->size, HZ *10);	    
+
 	break;
     case TYPE_BULK:
 	retval = usb_bulk_msg(uframe_dev.udev,
@@ -124,6 +131,8 @@ long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     struct uframe_endpoint *ep;
     int retval;
+    struct control_params *cparams = NULL;
+    char * data = NULL;
     retval = 0;
     ep = filp->private_data;    
     printk(KERN_INFO"%s: IOCTL From endpoint %d, type %d, dir %d\n",DEVICE_NAME,ep->epaddr, ep->type, ep->dir);
@@ -139,9 +148,25 @@ long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	 }else
 	      return -EFAULT;
 	    break;
-	    
+
+    case IOCTL_CONTROL_READ:
+	if(copy_from_user(cparams, (struct control_params __user*) arg, sizeof(struct control_params)))
+	    return -EFAULT;
+
+	
+	retval = usb_control_msg(uframe_dev.udev, usb_rcvctrlpipe(uframe_dev.udev,ep->epaddr),
+				 cparams->request, cparams->request_type, cparams->value, cparams->index,
+				 data,cparams->size, HZ *10);
+	if(cparams->size)
+	{
+	    if(copy_to_user((char __user*) (arg + sizeof(struct control_params)), data, cparams->size))
+	       return -EFAULT;
+	}
+	
+	break;
+	
     default: // not defined
 	return -ENOTTY;
     }
-	return 0;
+	return retval;
 }
