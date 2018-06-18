@@ -21,10 +21,9 @@ MODULE_VERSION("0.5");
 int uframe_major;
 int uframe_minor;
 
-const int vid = 0x0000,pid=0x0538;
 static struct usb_device_id usb_table [] =
 {
-    { USB_DEVICE(vid,pid) },
+    { USB_DEVICE(VID,PID) },
     { }
 };
 
