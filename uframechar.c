@@ -75,7 +75,7 @@ ssize_t uframe_read(struct file *filp, char __user *buff, size_t count, loff_t *
 
     printk(KERN_INFO "%s: read Data %s\n",DEVICE_NAME,ep->data);
     /* if the read was successful, copy the data to userspace */
-    if (retval >= 0)
+    if (!retval)
     {
 	printk(KERN_INFO "%s: Copying buffer to user\n",DEVICE_NAME);
 	if (copy_to_user(buff, ep->data, min(ep->buffer_size,(int) count)))
