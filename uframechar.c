@@ -200,6 +200,7 @@ long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return -EFAULT;
 	}
 	retval = uframe_dev.epcnt;
+	break;
     default: // not defined
 	return -ENOTTY;
     }
