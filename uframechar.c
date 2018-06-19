@@ -142,12 +142,16 @@ ssize_t uframe_write(struct file *filp, const char __user *buff, size_t count, l
     return retval;
 }
 
+
 long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     struct uframe_endpoint *ep;
     int retval;
     struct control_params *cparams = NULL;
     char *data;
+    
+    int i;
+    
     cparams = kmalloc(sizeof(struct control_params),GFP_KERNEL);
     retval = 0;
     ep = filp->private_data;    
@@ -185,7 +189,17 @@ long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	
 	break;
-	
+
+    case IOCTL_ENDPOINTS_COUNT:
+	retval =  uframe_dev.epcnt;
+	break;
+    case IOCTL_ENDPOINTS_DESC:
+	for(i = 0; i < uframe_dev.epcnt; i++)
+	{
+	    if(copy_to_user((int __user *) arg + (i*5 *sizeof(int)),(int *) &uframe_dev.eps[i], sizeof(int) * 5)) // 5 the first 5 ints in the struct endpoint
+		return -EFAULT;
+	}
+	retval = uframe_dev.epcnt;
     default: // not defined
 	return -ENOTTY;
     }

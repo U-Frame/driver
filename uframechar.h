@@ -3,7 +3,8 @@
 
 #define IOCTL_INTERRUPT_INTERVAL 0
 #define IOCTL_CONTROL_READ 1
-
+#define IOCTL_ENDPOINTS_COUNT 2
+#define IOCTL_ENDPOINTS_DESC 3
 
 ssize_t uframe_write(struct file *, const char __user *, size_t , loff_t *);
 ssize_t uframe_read(struct file *, char __user *, size_t , loff_t *);

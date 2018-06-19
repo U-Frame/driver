@@ -14,7 +14,8 @@
 #define DIR_OUT 1
 
 struct uframe_endpoint {
-    int type;
+    //order is important -> ioctl return all descriptors
+    int type; 
     int dir;
     int epaddr;
     int interval;
