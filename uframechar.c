@@ -137,11 +137,18 @@ ssize_t uframe_write(struct file *filp, const char __user *buff, size_t count, l
 				   (int *) &count, HZ*10);
 	break;
     }
-    if(retval >= 0)
+    if(!retval)
 	retval = count;
     return retval;
 }
 
+struct __ep_desc {
+    int type; 
+    int dir;
+    int epaddr;
+    int interval;
+    int buffer_size; 
+};
 
 long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
@@ -149,8 +156,7 @@ long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     int retval;
     struct control_params *cparams = NULL;
     char *data;
-    
-    int i;
+    struct __ep_desc _ep_desc;
     
     cparams = kmalloc(sizeof(struct control_params),GFP_KERNEL);
     retval = 0;
@@ -190,16 +196,18 @@ long uframe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	
 	break;
 
-    case IOCTL_ENDPOINTS_COUNT:
-	retval =  uframe_dev.epcnt;
-	break;
     case IOCTL_ENDPOINTS_DESC:
-	for(i = 0; i < uframe_dev.epcnt; i++)
-	{
-	    if(copy_to_user((int __user *) arg + (i*5 *sizeof(int)),(int *) &uframe_dev.eps[i], sizeof(int) * 5)) // 5 the first 5 ints in the struct endpoint
-		return -EFAULT;
-	}
-	retval = uframe_dev.epcnt;
+        _ep_desc.type = ep->type;
+	_ep_desc.interval = ep->interval;
+	_ep_desc.dir = ep->dir;
+	_ep_desc.epaddr = ep->epaddr;
+	_ep_desc.buffer_size = ep->buffer_size;
+	printk(KERN_INFO"%s: endpoints type %d interval %d dir %d epaddr %d size %d \n",DEVICE_NAME, _ep_desc.type,
+	       _ep_desc.interval, _ep_desc.dir, _ep_desc.epaddr, _ep_desc.buffer_size);
+	if(copy_to_user((struct __ep_desc  __user *) arg, &_ep_desc, sizeof(struct __ep_desc))) 
+	    return -EFAULT;
+       
+	retval = 0;
 	break;
     default: // not defined
 	return -ENOTTY;

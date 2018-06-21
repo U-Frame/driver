@@ -68,26 +68,6 @@ void testControlWithData()
     retval = ioctl(fd, 1, &p); // read data out
     assert(retval == p.size);
     assert(!strncmp(p.data,"Hello, TEST",11));
-
-    printf("Write Data\n");
-    p.request = 4;
-    p.size = 6;
-    p.request_type = 0x40;
-    p.value = p.index =0;
-    strcpy(p.data, "Test!");
-    printf("data: %s\n",p.data);
-    retval = write(fd, &p, sizeof(p)); 
-    assert(retval == sizeof(p));
-
-   
-    printf("Read Data\n");
-    p.request = 2;
-    p.request_type = 0xc0;
-    p.size = 16;
-    retval = ioctl(fd, 1, &p); // read data out
-    printf("data: %s\n",p.data);
-    assert(retval == p.size);
-    assert(!strncmp(p.data,"Test!",5));
     
     retval = close(fd);
     assert(retval ==0);
@@ -103,16 +83,12 @@ void testControlWithoutData()
 
     struct control_params p;
     memset(&p,0,sizeof(p));
-    p.request = 1;
     p.request_type = 0xc0;
     p.value = 0;
     p.index = 0;
     p.size = 0;
-    
-    retval = write(fd, &p, sizeof(p));
-    assert(retval == sizeof(p));
-
     p.request = 2;
+    
     retval = ioctl(fd, 1, &p);
     assert(retval == 0);
 
@@ -158,24 +134,36 @@ void testInterruptRead()
     int fd;
     int retval ;
     
-    fd = open("/dev/uframe/interrupt",O_RDWR); //open for read and write
+    fd = open("/dev/uframe/bulk",O_RDWR); //open for read and write
     assert(fd == -1);
     assert(errno == EACCES);
     
     printf("errno : %d\n",errno);
-    fd = open("/dev/uframe/interrupt",O_RDONLY);
+    fd = open("/dev/uframe/bulk",O_RDONLY);
     assert(fd > 0);
    
     unsigned char data[255];
     int i,j;
    
-    retval = read(fd, data, 255);
-    printf("%d\n",retval);
-    assert(retval > 0);
 
-    for(j = 0 ; j < retval ; j++)
-	printf("byte %d: %x\n", j, data[j]);
+    
+    int interval;
+    retval = ioctl(fd, 0, &interval);
+    assert(retval == 0);
+    assert(interval == 100); 
+    printf("Interval %d \n", interval);
 
+    
+    for(j = 0 ; j < 10 ; j++)
+    {
+	retval = read(fd, data, 8);
+	printf("%d\n",retval);
+	assert(retval == 4);
+	for(i =0; i < retval ; i++)
+	    printf("byte %d: %x\n", i, data[i]);
+	sleep(interval/1000);
+    }
+    
     retval = read(fd, data, 0); // zero data
     assert(retval == 0);
     
@@ -183,12 +171,7 @@ void testInterruptRead()
     assert(retval == -1);
     assert(errno == EBADF);
 
-    
-    int interval;
-    retval = ioctl(fd, 0, &interval);
-    assert(retval == 0);
-    assert(interval == 10); 
-    printf("Interval %d \n", interval);
+   
 }
 
 void testBulkWrite()
@@ -242,10 +225,26 @@ void testBulkRead()
 
 }
 
+void testIOCTL()
+{
+    int fd,i, j, retval;
+    int buff[5];
+    memset(buff, 0, 5 *sizeof(int));
+    fd = open("/dev/uframe/interrupt",O_RDONLY);
+    assert(fd > 0);
+
+    printf("IOCTL READ ENDPOINTS\n");
+    retval = ioctl(fd, 3,buff);
+    assert(retval == 0);
+    for(j =0 ; j < 5; j++)
+	printf("data %d: %d\n",j,buff[j]);
+    close(fd);
+}
 
 int main()
 {
-    //testControlWithData();
+    testControlWithData();
     //testControlWithoutData();
     testInterruptRead();
+    testIOCTL();
 }

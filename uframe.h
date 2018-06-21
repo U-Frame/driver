@@ -3,8 +3,8 @@
 
 #define  DEVICE_NAME "uframe"
 
-#define VID 0x00
-#define PID 0x00
+#define VID 0x16c0
+#define PID 0x03e8
 
 #define TYPE_CONTROL 0
 #define TYPE_BULK 1

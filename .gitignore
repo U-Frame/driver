@@ -1,6 +1,6 @@
 *~
 .cache.mk
-
+test/chartest
 # Prerequisites
 *.d
 
